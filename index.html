@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>رواياتي | مكتبة الكتاب الشخصية</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2280%22 fill=%22%231565C0%22 font-weight=%22bold%22>ر</text></svg>">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
             --primary-color: #1565C0;
@@ -111,9 +110,7 @@
         
         .container { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 24px; }
         
-        .card { display: flex; gap: 15px; background: #FFFFFF; padding: 16px; border-radius: 12px; border: 1px solid #E0E0E0; border-top: 4px solid var(--primary-color); cursor: pointer; transition: all 0.2s ease; position: relative; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
-        .cover-img { width: 80px; height: 115px; border-radius: 8px; object-fit: cover; background: #E0E0E0; flex-shrink: 0; border: 1px solid #E0E0E0; }
-        .card-content { flex: 1; display: flex; flex-direction: column; justify-content: center; min-width: 0; }
+        .card { background: #FFFFFF; padding: 16px; border-radius: 12px; border: 1px solid #E0E0E0; border-top: 4px solid var(--primary-color); cursor: pointer; transition: all 0.2s ease; position: relative; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
         .card:hover { transform: translateY(-2px); border-color: var(--primary-light); box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
         
         .title { font-size: 1.15em; font-weight: 700; margin-bottom: 6px; color: #1A1A1A; }
@@ -347,8 +344,21 @@
 
 <script>
     const urlParams = new URLSearchParams(window.location.search);
-    const urlAid = urlParams.get('aid') || 'guest';
-    const urlUname = urlParams.get('u') || 'زائر';
+    const urlAid = urlParams.get('aid');
+    const urlUname = urlParams.get('u');
+
+    if (!urlAid) {
+        document.body.innerHTML = 
+            '<div style="display:flex;align-items:center;' +
+            'justify-content:center;height:100vh;' +
+            'font-family:Tahoma,sans-serif;text-align:center;padding:20px;">' +
+            '<div>' +
+            '<h1 style="color:#1565C0;font-size:2em;">رواياتي</h1>' +
+            '<p style="color:#757575;margin-top:20px;font-size:1.1em;">' +
+            'هذا الموقع يعمل فقط من داخل التطبيق.</p>' +
+            '</div></div>';
+        throw new Error('Not in app');
+    }
 </script>
 
 <div id="mainPage">
@@ -495,10 +505,6 @@
 </div>
 
 <script>
-    const SUPABASE_URL = "https://fatoynueyvvebibpbkow.supabase.co";
-    const SUPABASE_KEY = "sb_publishable_I4uBK-o8LB43j6kgb5XTqg_wdqvRN6g";
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
     const PROXY_URL = "https://my-storyio.netlify.app/api";
     const API_GET = `${PROXY_URL}/get`;
     const API_PUT = `${PROXY_URL}/save`;
@@ -668,19 +674,16 @@
 
                 div.innerHTML = `
                     <button class="share-btn" onclick="event.stopPropagation(); shareNovel('${getNovelKey(novel).replace(/'/g, "\\'")}', 0)" title="مشاركة">مشاركة</button>
-                    <img src="${escapeHtml(novel.cover_url || 'data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2280%22 height=%22115%22><rect width=%22100%25%22 height=%22100%25%22 fill=%22%23ECEFF1%22/><text x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-family=%22Tahoma%22 font-size=%2212%22 fill=%22%23757575%22>غلاف</text></svg>')}" class="cover-img" alt="غلاف">
-                    <div class="card-content">
-                        <div class="title">${escapeHtml(novel.title)}</div>
-                        <div class="info">
-                            <span>بقلم: <span class="author-link" onclick="event.stopPropagation(); openProfileByUsername('${escapeHtml(authorName).replace(/'/g, "\\'")}')">${escapeHtml(authorName)}</span></span>
-                            <span class="badge">${typeText}</span>
-                        </div>
-                        <div class="info" style="margin-top:5px;"><span>فصول: ${chapterTitles.length}</span></div>
-                        <div class="stats">
-                            <div class="stat-item">قراءات: ${views}</div>
-                            <div class="stat-item">قراء: ${readers}</div>
-                            <div class="stat-item">إعجابات: ${likes}</div>
-                        </div>
+                    <div class="title">${escapeHtml(novel.title)}</div>
+                    <div class="info">
+                        <span>بقلم: <span class="author-link" onclick="event.stopPropagation(); openProfileByUsername('${escapeHtml(authorName).replace(/'/g, "\\'")}')">${escapeHtml(authorName)}</span></span>
+                        <span class="badge">${typeText}</span>
+                    </div>
+                    <div class="info" style="margin-top:5px;"><span>فصول: ${chapterTitles.length}</span></div>
+                    <div class="stats">
+                        <div class="stat-item">قراءات: ${views}</div>
+                        <div class="stat-item">قراء: ${readers}</div>
+                        <div class="stat-item">إعجابات: ${likes}</div>
                     </div>
                 `;
                 container.appendChild(div);
@@ -1077,38 +1080,16 @@
         await saveNovelUpdate(currentNovel);
     }
 
-    async function submitComment() {
-        if (!currentNovel || !currentUser) {
-            alert('تعذر تحديد المستخدم أو الرواية.');
-            return;
-        }
-        const commentText = document.getElementById('commentInput').value.trim();
-        if (!commentText) return;
-
-        const submitButton = document.querySelector('.submit-comment-btn');
-        if (submitButton) submitButton.disabled = true;
-
-        try {
-            const { error } = await supabase
-                .from('comments')
-                .insert([{
-                    novel_id: getNovelKey(currentNovel),
-                    author_id: currentUser.authorId,
-                    username: currentUser.name,
-                    text: commentText
-                }]);
-
-            if (error) throw error;
-
-            document.getElementById('commentInput').value = '';
-            await loadComments(getNovelKey(currentNovel));
-            await notifyAuthorInteraction('علق على');
-        } catch (error) {
-            console.error('Supabase submit comment error:', error);
-            alert('تعذر إرسال التعليق. تحقق من اتصال Supabase وإعدادات صلاحيات جدول comments.');
-        } finally {
-            if (submitButton) submitButton.disabled = false;
-        }
+    function submitComment() {
+        if (!currentNovel || !currentUser) return;
+        const text = document.getElementById('commentInput').value.trim();
+        if (!text) return;
+        const isAuthor = currentUser.authorOf && currentUser.authorOf.length > 0;
+        const roleDisplay = isAuthor ? 'مؤلف' : 'قارئ';
+        addComment(getNovelKey(currentNovel), text, currentUser.name, roleDisplay);
+        document.getElementById('commentInput').value = '';
+        loadComments(getNovelKey(currentNovel));
+        notifyAuthorInteraction('علق على');
     }
 
     async function notifyAuthorInteraction(actionType) {
@@ -1135,36 +1116,17 @@
         } catch (e) { console.error("Notify Error", e); }
     }
 
-    async function loadComments(novelKey) {
+    function loadComments(novelKey) {
+        const comments = getComments();
         const list = document.getElementById('commentsList');
-        list.innerHTML = '<div class="loading-section">جاري تحميل التعليقات...</div>';
-
-        try {
-            const { data: comments, error } = await supabase
-                .from('comments')
-                .select('*')
-                .eq('novel_id', novelKey)
-                .order('created_at', { ascending: false });
-
-            if (error) throw error;
-
-            list.innerHTML = '';
-            if (!comments || comments.length === 0) {
-                list.innerHTML = '<div class="empty-section">لا توجد تعليقات بعد</div>';
-                return;
-            }
-
-            comments.forEach(comment => {
-                const div = document.createElement('div');
-                div.className = 'comment-item';
-                const commentDate = comment.created_at ? new Date(comment.created_at).toLocaleDateString('ar-SA') : '';
-                div.innerHTML = `<div class="comment-author">${escapeHtml(comment.username || 'مستخدم')}</div><div class="comment-text">${escapeHtml(comment.text || '')}</div><div class="comment-date">${escapeHtml(commentDate)}</div>`;
-                list.appendChild(div);
-            });
-        } catch (error) {
-            console.error('Supabase load comments error:', error);
-            list.innerHTML = '<div class="error-section">تعذر تحميل التعليقات</div>';
-        }
+        list.innerHTML = '';
+        const novelComments = comments[novelKey] || [];
+        [...novelComments].reverse().forEach(c => {
+            const div = document.createElement('div');
+            div.className = 'comment-item';
+            div.innerHTML = `<div class="comment-author">${escapeHtml(c.author)} (${c.role || 'قارئ'})</div><div class="comment-text">${escapeHtml(c.text)}</div><div class="comment-date">${new Date(c.date).toLocaleDateString('ar-SA')}</div>`;
+            list.appendChild(div);
+        });
     }
 
     function getReadingStatus() { try { return JSON.parse(localStorage.getItem('reading_status') || '{}'); } catch (e) { return {}; } }
