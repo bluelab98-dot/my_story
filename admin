@@ -432,7 +432,7 @@ button { border: 0; border-radius: 9px; padding: 11px 17px; cursor: pointer; fon
     <!-- ================= قسم الروايات ================= -->
     <div id="novelsSection" class="section-content active">
         
-        <!-- الاتصال (تم التعديل) -->
+        <!-- الاتصال -->
         <div class="connection-box" id="connectionBox">
             <h2>✓ متصل بقاعدة البيانات</h2>
             <div class="key-row">
@@ -580,6 +580,11 @@ button { border: 0; border-radius: 9px; padding: 11px 17px; cursor: pointer; fon
             <label>اسم الرواية:</label>
             <input type="text" id="editNovelName" style="width:100%; padding:10px; border:1px solid #E0E0E0; border-radius:8px;">
         </div>
+        <!-- خيار النشر والإشراف من الإدمن -->
+        <div style="margin-bottom: 15px; display: flex; align-items: center; gap: 10px; background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0;">
+            <input type="checkbox" id="editNovelPublished" style="width: 20px; height: 20px; cursor: pointer;">
+            <label for="editNovelPublished" style="font-weight: bold; cursor: pointer; color: #1e293b; margin: 0;">نشر الرواية على الموقع (تظهر باسم المؤلف)</label>
+        </div>
         <div id="chaptersEditContainer" style="max-height: 60vh; overflow-y: auto;"></div>
         <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
             <button class="details-btn" onclick="addNewChapter()">+ إضافة فصل</button>
@@ -592,7 +597,7 @@ button { border: 0; border-radius: 9px; padding: 11px 17px; cursor: pointer; fon
 <script>
 
 /* =========================================================
-   إعدادات عامة
+   إعدادات عامة (الرابط الجديد)
 ========================================================= */
 const PROXY_URL = "https://mystory-58z8.vercel.app/api";
 const API_GET = `${PROXY_URL}/get`;
@@ -1626,6 +1631,7 @@ function renderNovels() {
     filtered.forEach(novel => {
         const idx = allNovels.indexOf(novel);
         const visible = novel.visible !== false;
+        const published = novel.published !== false;
         
         const div = document.createElement('div');
         div.className = 'novel';
@@ -1634,15 +1640,23 @@ function renderNovels() {
                 <div>
                     <div style="font-weight:bold; font-size:1.1em;">${escapeHTML(novel.title)}</div>
                     <div style="color:#666; font-size:0.9em; margin-top:5px;">
+                        المؤلف: ${escapeHTML(novel.author || 'غير معروف')} | 
                         الفصول: ${Array.isArray(novel.chapterTitles)?novel.chapterTitles.length:0} | 
                         الحالة: ${novel.continuous ? 'مستمرة' : 'منتهية'}
                     </div>
                 </div>
-                <span class="badge ${visible?'visible':'hidden'}">${visible?'ظاهرة':'مخفية'}</span>
+                <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                    <span class="badge ${visible?'visible':'hidden'}">${visible?'ظاهرة':'مخفية'}</span>
+                    <span class="badge" style="background:${published?'#dcfce7':'#fef3c7'}; color:${published?'#166534':'#92400e'}">${published?'منشورة':'غير منشورة'}</span>
+                </div>
             </div>
             <div class="novel-actions">
                 <button class="details-btn" onclick="showDetails(${idx})">عرض</button>
                 <button class="edit-btn" onclick="openEditNovel(${idx})">تعديل</button>
+                <button class="${published?'delete-btn':'details-btn'}" style="background:${published?'#fef3c7':'#dcfce7'}; color:${published?'#92400e':'#166534'}" 
+                    onclick="setPublished(${idx}, ${!published})">
+                    ${published?'إلغاء النشر':'نشر'}
+                </button>
                 <button class="${visible?'delete-btn':'details-btn'}" style="background:${visible?'#fef3c7':'#dcfce7'}; color:${visible?'#92400e':'#166534'}" 
                     onclick="setVisibility(${idx}, ${!visible})">
                     ${visible?'إخفاء':'إظهار'}
@@ -1665,6 +1679,18 @@ async function setVisibility(idx, status) {
         allNovels[idx].visible = prev;
         renderNovels();
         updateStats();
+    }
+}
+
+async function setPublished(idx, status) {
+    if(idx < 0 || idx >= allNovels.length) return;
+    const prev = allNovels[idx].published;
+    allNovels[idx].published = status;
+    renderNovels();
+    const ok = await saveData();
+    if (!ok) {
+        allNovels[idx].published = prev;
+        renderNovels();
     }
 }
 
@@ -1791,6 +1817,7 @@ function openEditNovel(idx) {
 
     document.getElementById("editNovelTitle").innerText = "تعديل: " + novel.title;
     document.getElementById("editNovelName").value = novel.title || "";
+    document.getElementById("editNovelPublished").checked = novel.published !== false;
 
     const container = document.getElementById("chaptersEditContainer");
     container.innerHTML = "";
@@ -1842,6 +1869,8 @@ async function saveAllChapters() {
     pauseAutoRefresh();
 
     const novelNameInput = document.getElementById("editNovelName").value.trim();
+    const isPublished = document.getElementById("editNovelPublished").checked;
+    
     if (!novelNameInput) {
         alert("❌ يجب إدخال اسم الرواية.");
         resumeAutoRefresh();
@@ -1888,10 +1917,12 @@ async function saveAllChapters() {
         const novelIdxInServer = record.novels.findIndex(n => n.novelId === targetNovelId);
         if (novelIdxInServer !== -1) {
             record.novels[novelIdxInServer].title = novelNameInput;
+            record.novels[novelIdxInServer].published = isPublished;
             record.novels[novelIdxInServer].chapterTitles = newTitles;
             record.novels[novelIdxInServer].chapterContents = newContents;
         } else {
             allNovels[currentEditingNovelIndex].title = novelNameInput;
+            allNovels[currentEditingNovelIndex].published = isPublished;
             allNovels[currentEditingNovelIndex].chapterTitles = newTitles;
             allNovels[currentEditingNovelIndex].chapterContents = newContents;
             record.novels = allNovels;
@@ -1923,6 +1954,7 @@ function closeEditNovel() {
     document.getElementById("editNovelModal").classList.remove("show");
     document.getElementById("chaptersEditContainer").innerHTML = "";
     document.getElementById("editNovelName").value = "";
+    document.getElementById("editNovelPublished").checked = false;
     currentEditingNovelIndex = -1;
 }
 
